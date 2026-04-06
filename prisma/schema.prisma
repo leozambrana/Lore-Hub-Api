@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id
+  email     String    @unique
+  username  String    @unique
+  avatarUrl String?
+  theories  Theory[]
+  comments  Comment[]
+  votes     Vote[]
+  createdAt DateTime  @default(now())
+}
+
+model Game {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  imageUrl  String?
+  theories  Theory[]
+  createdAt DateTime @default(now())
+}
+
+model Theory {
+  id           String    @id @default(uuid())
+  title        String
+  content      String
+  wikiUrl      String
+  wikiMetadata Json?
+  upvotes      Int       @default(0)
+  gameId       String
+  game         Game      @relation(fields: [gameId], references: [id])
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  comments     Comment[]
+  votes        Vote[]
+  createdAt    DateTime  @default(now())
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String
+  theoryId  String
+  theory    Theory    @relation(fields: [theoryId], references: [id])
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+}
+
+model Vote {
+  id       String   @id @default(uuid())
+  type     VoteType
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  theoryId String
+  theory   Theory   @relation(fields: [theoryId], references: [id])
+
+  @@unique([userId, theoryId])
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
