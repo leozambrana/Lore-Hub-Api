@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users';
 import { GamesModule } from './modules/games';
 import { TheoriesModule } from './modules/theories';
 import { CommentsModule } from './modules/comments';
+import { SupabaseModule } from './modules/supabase/supabase.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CommentsModule } from './modules/comments';
     GamesModule,
     TheoriesModule,
     CommentsModule,
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -3,6 +3,10 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+// Supabase Storage Buckets Info:
+// - game-images: Public bucket for Game model cover images.
+// - avatars: Public bucket for user profile avatar images.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,23 +23,25 @@ model User {
   theories  Theory[]
   comments  Comment[]
   votes     Vote[]
+  role      UserRole  @default(USER)
   createdAt DateTime  @default(now())
 }
 
 model Game {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   title     String
-  slug      String   @unique
+  slug      String     @unique
   imageUrl  String?
   theories  Theory[]
-  createdAt DateTime @default(now())
+  status    GameStatus @default(PENDING)
+  createdAt DateTime   @default(now())
 }
 
 model Theory {
   id           String    @id @default(uuid())
   title        String
   content      String
-  wikiUrl      String
+  wikiUrl      String?
   wikiMetadata Json?
   upvotes      Int       @default(0)
   gameId       String
@@ -51,7 +57,7 @@ model Comment {
   id        String    @id @default(uuid())
   content   String
   theoryId  String
-  theory    Theory    @relation(fields: [theoryId], references: [id])
+  theory    Theory    @relation(fields: [theoryId], references: [id], onDelete: Cascade)
   userId    String
   user      User      @relation(fields: [userId], references: [id])
   parentId  String?
@@ -66,7 +72,7 @@ model Vote {
   userId   String
   user     User     @relation(fields: [userId], references: [id])
   theoryId String
-  theory   Theory   @relation(fields: [theoryId], references: [id])
+  theory   Theory   @relation(fields: [theoryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, theoryId])
 }
@@ -74,4 +80,14 @@ model Vote {
 enum VoteType {
   UP
   DOWN
+}
+
+enum GameStatus {
+  PENDING
+  APPROVED
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
