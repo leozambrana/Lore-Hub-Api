@@ -1,35 +1,29 @@
-# Estágio 1: Build
+# Estágio de Build
 FROM node:20-slim AS builder
-
-# Instalar dependências necessárias para o Prisma no Linux
-RUN apt-get update && apt-get install -y openssl
+RUN apt-get update && apt-get install -y openssl python3 make g++ 
 
 WORKDIR /app
-
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# 1. Instala as dependências
 RUN npm install
-
-# 2. GERA O CLIENTE DO PRISMA
+# No Prisma 7, o generate é crucial antes do build
 RUN npx prisma generate
 
-# 3. Copia o resto do código
 COPY . .
-
-# 4. Agora o build vai funcionar porque o PrismaClient já existe
 RUN npm run build
 
-# Estágio 2: Runner
+# Estágio de Runtime
 FROM node:20-slim AS runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
-COPY --from=builder /app/package*.json ./
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "echo $DATABASE_URL && npx prisma migrate deploy && node dist/main"]
+# O comando que une migração e execução
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
