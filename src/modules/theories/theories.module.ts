@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { TheoriesController } from './controllers';
 import { TheoriesService } from './services';
 import { VotesModule } from '../votes/votes.module';
+import { ScraperModule } from '../scraper/scraper.module';
 
 @Module({
-  imports: [VotesModule],
+  imports: [VotesModule, ScraperModule],
   controllers: [TheoriesController],
   providers: [TheoriesService],
 })

@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma';
 import { CreateTheoryDto, UpdateTheoryDto } from '../dto';
+import { ScraperService } from '../../scraper/scraper.service';
 
 @Injectable()
 export class TheoriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private scraperService: ScraperService,
+  ) {}
 
   async create(createTheoryDto: CreateTheoryDto, userId: string) {
     // Verificar se o game existe
@@ -22,12 +26,18 @@ export class TheoriesService {
       );
     }
 
+    // Enriquece com metadados da wiki se URL fornecida
+    let wikiMetadata = createTheoryDto.wikiMetadata ?? undefined;
+    if (createTheoryDto.wikiUrl) {
+      wikiMetadata = await this.scraperService.scrapeUrl(createTheoryDto.wikiUrl) as any;
+    }
+
     return this.prisma.theory.create({
       data: {
         title: createTheoryDto.title,
         content: createTheoryDto.content,
         wikiUrl: createTheoryDto.wikiUrl,
-        wikiMetadata: createTheoryDto.wikiMetadata ?? undefined,
+        wikiMetadata,
         gameId: createTheoryDto.gameId,
         userId,
       },
@@ -125,6 +135,14 @@ export class TheoriesService {
       }
     }
 
+    // Se a wikiUrl mudou ou é nova, dispara o scraper
+    let wikiMetadata = updateTheoryDto.wikiMetadata ?? undefined;
+    if (updateTheoryDto.wikiUrl && updateTheoryDto.wikiUrl !== theory.wikiUrl) {
+      wikiMetadata = (await this.scraperService.scrapeUrl(
+        updateTheoryDto.wikiUrl,
+      )) as any;
+    }
+
     // Excluir gameId se não quiser transferir entre jogos, mas aqui permitimos.
     return this.prisma.theory.update({
       where: { id },
@@ -132,7 +150,7 @@ export class TheoriesService {
         title: updateTheoryDto.title,
         content: updateTheoryDto.content,
         wikiUrl: updateTheoryDto.wikiUrl,
-        wikiMetadata: updateTheoryDto.wikiMetadata ?? undefined,
+        wikiMetadata,
         gameId: updateTheoryDto.gameId,
       },
     });
