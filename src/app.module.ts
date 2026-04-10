@@ -8,6 +8,7 @@ import { GamesModule } from './modules/games';
 import { TheoriesModule } from './modules/theories';
 import { CommentsModule } from './modules/comments';
 import { SupabaseModule } from './modules/supabase/supabase.module';
+import { VotesModule } from './modules/votes/votes.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SupabaseModule } from './modules/supabase/supabase.module';
     TheoriesModule,
     CommentsModule,
     SupabaseModule,
+    VotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

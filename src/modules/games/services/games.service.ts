@@ -7,6 +7,8 @@ import { PrismaService } from '../../prisma';
 import { CreateGameDto, UpdateGameDto } from '../dto';
 import { SupabaseService } from '../../supabase/supabase.service';
 
+import { GameMapper } from '../mappers/game.mapper';
+
 @Injectable()
 export class GamesService {
   private readonly ALLOWED_DOMAIN =
@@ -26,23 +28,33 @@ export class GamesService {
     }
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit;
+
+    const whereCondition: any = { status: 'APPROVED' };
+    if (search) {
+      whereCondition.title = { contains: search, mode: 'insensitive' };
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.game.findMany({
-        where: { status: 'APPROVED' },
+        where: whereCondition,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { theories: true },
+          },
+        },
       }),
-      this.prisma.game.count({ where: { status: 'APPROVED' } }),
+      this.prisma.game.count({ where: whereCondition }),
     ]);
 
-    const lastPage = Math.ceil(total / limit);
+    const lastPage = Math.ceil(total / limit) || 1;
 
     return {
-      data,
+      data: GameMapper.toHttpArray(data),
       meta: {
         total,
         page,
@@ -52,37 +64,41 @@ export class GamesService {
   }
 
   async findPending() {
-    return await this.prisma.game.findMany({
+    const data = await this.prisma.game.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
     });
+    return GameMapper.toHttpArray(data);
   }
 
   async findOneBySlug(slug: string) {
-    return await this.prisma.game.findUnique({
+    const game = await this.prisma.game.findUnique({
       where: { slug },
       include: { theories: true },
     });
+    return GameMapper.toHttp(game);
   }
 
   async approve(id: string) {
     const game = await this.prisma.game.findUnique({ where: { id } });
     if (!game) throw new NotFoundException('Franquia não encontrada.');
 
-    return await this.prisma.game.update({
+    const updated = await this.prisma.game.update({
       where: { id },
       data: { status: 'APPROVED' },
     });
+    return GameMapper.toHttp(updated);
   }
 
   async create(data: CreateGameDto) {
     this.validateImageUrl(data.imageUrl);
-    return await this.prisma.game.create({
+    const created = await this.prisma.game.create({
       data: {
         ...data,
         status: 'PENDING',
       },
     });
+    return GameMapper.toHttp(created);
   }
 
   async update(id: string, data: UpdateGameDto) {
@@ -93,10 +109,11 @@ export class GamesService {
       this.validateImageUrl(data.imageUrl);
     }
 
-    return await this.prisma.game.update({
+    const updated = await this.prisma.game.update({
       where: { id },
       data,
     });
+    return GameMapper.toHttp(updated);
   }
 
   async remove(id: string) {
@@ -127,6 +144,6 @@ export class GamesService {
       await this.supabaseService.deleteFile('game-images', imageUrl);
     }
 
-    return deletedGame;
+    return GameMapper.toHttp(deletedGame);
   }
 }

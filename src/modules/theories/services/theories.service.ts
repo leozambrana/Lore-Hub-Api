@@ -42,18 +42,29 @@ export class TheoriesService {
     });
   }
 
-  async findAll(page: number = 1, limit: number = 10, gameId?: string) {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    gameId?: string,
+    sort: string = 'recent',
+  ) {
     const skip = (page - 1) * limit;
 
-    // Se gameId for fornecido, filtra; caso contrário envia tudo
     const where = gameId ? { gameId } : {};
+
+    let orderBy: any = { createdAt: 'desc' };
+    if (sort === 'popular') {
+      orderBy = { upvotes: 'desc' };
+    } else if (sort === 'discussed') {
+      orderBy = { comments: { _count: 'desc' } };
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.theory.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           user: { select: { id: true, username: true, avatarUrl: true } },
           game: { select: { id: true, title: true, slug: true } },
@@ -149,5 +160,26 @@ export class TheoriesService {
     return this.prisma.theory.delete({
       where: { id },
     });
+  }
+
+  async getSystemStats() {
+    const totalTheories = await this.prisma.theory.count();
+    const totalGames = await this.prisma.game.count();
+
+    const topTheorists = await this.prisma.user.findMany({
+      take: 5,
+      where: { theories: { some: {} } },
+      orderBy: {
+        theories: { _count: 'desc' },
+      },
+      select: {
+        id: true,
+        username: true,
+        avatarUrl: true,
+        _count: { select: { theories: true, votes: true } },
+      },
+    });
+
+    return { totalTheories, totalGames, topTheorists };
   }
 }

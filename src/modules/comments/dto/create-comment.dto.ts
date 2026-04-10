@@ -1,0 +1,18 @@
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
+
+export class CreateCommentDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  content: string;
+
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
+}

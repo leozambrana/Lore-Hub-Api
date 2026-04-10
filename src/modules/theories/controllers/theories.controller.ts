@@ -11,14 +11,19 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   Req,
+  Request,
 } from '@nestjs/common';
 import { TheoriesService } from '../services';
 import { CreateTheoryDto, UpdateTheoryDto } from '../dto';
 import { SupabaseAuthGuard } from '../../auth/guards';
+import { VotesService } from '../../votes/services/votes.service';
 
 @Controller('theories')
 export class TheoriesController {
-  constructor(private readonly theoriesService: TheoriesService) {}
+  constructor(
+    private readonly theoriesService: TheoriesService,
+    private readonly votesService: VotesService,
+  ) {}
 
   @Post()
   @UseGuards(SupabaseAuthGuard)
@@ -32,8 +37,25 @@ export class TheoriesController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('gameId') gameId?: string,
+    @Query('sort') sort?: string,
   ) {
-    return this.theoriesService.findAll(page, limit, gameId);
+    return this.theoriesService.findAll(page, limit, gameId, sort);
+  }
+
+  @Get('system-stats')
+  getSystemStats() {
+    return this.theoriesService.getSystemStats();
+  }
+
+  // Rotas estáticas ANTES de ':id' para evitar conflito de parâmetro
+  @Get('my-votes')
+  @UseGuards(SupabaseAuthGuard)
+  async getMyVotesBatch(
+    @Query('ids') ids: string,
+    @Request() req: any,
+  ): Promise<Record<string, 'UP' | 'DOWN' | null>> {
+    const theoryIds = ids ? ids.split(',').filter(Boolean) : [];
+    return this.votesService.getMyVotesBatch(theoryIds, req.user.id);
   }
 
   @Get(':id')
