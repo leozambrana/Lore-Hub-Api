@@ -38,8 +38,9 @@ export class TheoriesController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('gameId') gameId?: string,
     @Query('sort') sort?: string,
+    @Query('search') search?: string,
   ) {
-    return this.theoriesService.findAll(page, limit, gameId, sort);
+    return this.theoriesService.findAll(page, limit, gameId, sort, search);
   }
 
   @Get('system-stats')

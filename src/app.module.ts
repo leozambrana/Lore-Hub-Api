@@ -9,6 +9,7 @@ import { TheoriesModule } from './modules/theories';
 import { CommentsModule } from './modules/comments';
 import { SupabaseModule } from './modules/supabase/supabase.module';
 import { VotesModule } from './modules/votes/votes.module';
+import { WikiModule } from './modules/wiki';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { VotesModule } from './modules/votes/votes.module';
     CommentsModule,
     SupabaseModule,
     VotesModule,
+    WikiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

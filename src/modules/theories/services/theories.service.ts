@@ -29,7 +29,9 @@ export class TheoriesService {
     // Enriquece com metadados da wiki se URL fornecida
     let wikiMetadata = createTheoryDto.wikiMetadata ?? undefined;
     if (createTheoryDto.wikiUrl) {
-      wikiMetadata = await this.scraperService.scrapeUrl(createTheoryDto.wikiUrl) as any;
+      wikiMetadata = (await this.scraperService.scrapeUrl(
+        createTheoryDto.wikiUrl,
+      )) as any;
     }
 
     return this.prisma.theory.create({
@@ -40,6 +42,11 @@ export class TheoriesService {
         wikiMetadata,
         gameId: createTheoryDto.gameId,
         userId,
+        wikiReferences: {
+          create: createTheoryDto.wikiItemIds?.map((id) => ({
+            wikiItem: { connect: { id } },
+          })),
+        },
       },
       include: {
         user: {
@@ -57,10 +64,18 @@ export class TheoriesService {
     limit: number = 10,
     gameId?: string,
     sort: string = 'recent',
+    search: string = '',
   ) {
     const skip = (page - 1) * limit;
 
-    const where = gameId ? { gameId } : {};
+    const where: any = {};
+    if (gameId) where.gameId = gameId;
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     let orderBy: any = { createdAt: 'desc' };
     if (sort === 'popular') {
@@ -78,6 +93,11 @@ export class TheoriesService {
         include: {
           user: { select: { id: true, username: true, avatarUrl: true } },
           game: { select: { id: true, title: true, slug: true } },
+          wikiReferences: {
+            include: {
+              wikiItem: true,
+            },
+          },
           _count: { select: { comments: true, votes: true } },
         },
       }),
@@ -101,6 +121,11 @@ export class TheoriesService {
       include: {
         user: { select: { id: true, username: true, avatarUrl: true } },
         game: { select: { id: true, title: true, slug: true, imageUrl: true } },
+        wikiReferences: {
+          include: {
+            wikiItem: true,
+          },
+        },
         _count: { select: { comments: true, votes: true } },
       },
     });
@@ -152,6 +177,14 @@ export class TheoriesService {
         wikiUrl: updateTheoryDto.wikiUrl,
         wikiMetadata,
         gameId: updateTheoryDto.gameId,
+        wikiReferences: updateTheoryDto.wikiItemIds
+          ? {
+              deleteMany: {},
+              create: updateTheoryDto.wikiItemIds.map((id) => ({
+                wikiItem: { connect: { id } },
+              })),
+            }
+          : undefined,
       },
     });
   }

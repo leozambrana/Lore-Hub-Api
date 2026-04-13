@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsObject,
   ValidateIf,
+  IsArray,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateTheoryDto {
@@ -29,4 +31,9 @@ export class CreateTheoryDto {
   @IsString()
   @IsNotEmpty()
   gameId: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  wikiItemIds?: string[];
 }

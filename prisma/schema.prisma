@@ -7,9 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model User {
@@ -30,24 +28,26 @@ model Game {
   slug      String     @unique
   imageUrl  String?
   theories  Theory[]
+  wikiItems WikiItem[]
   status    GameStatus @default(PENDING)
   createdAt DateTime   @default(now())
 }
 
 model Theory {
-  id           String    @id @default(uuid())
-  title        String
-  content      String
-  wikiUrl      String?
-  wikiMetadata Json?
-  upvotes      Int       @default(0)
-  gameId       String
-  game         Game      @relation(fields: [gameId], references: [id])
-  userId       String
-  user         User      @relation(fields: [userId], references: [id])
-  comments     Comment[]
-  votes        Vote[]
-  createdAt    DateTime  @default(now())
+  id             String                @id @default(uuid())
+  title          String
+  content        String
+  wikiUrl        String?
+  wikiMetadata   Json?
+  upvotes        Int                   @default(0)
+  gameId         String
+  game           Game                  @relation(fields: [gameId], references: [id])
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  comments       Comment[]
+  votes          Vote[]
+  wikiReferences TheoryWikiReference[]
+  createdAt      DateTime              @default(now())
 }
 
 model Comment {
@@ -72,6 +72,36 @@ model Vote {
   theory   Theory   @relation(fields: [theoryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, theoryId])
+}
+
+model WikiItem {
+  id          String                @id @default(uuid())
+  name        String
+  description String
+  category    WikiCategory
+  imageUrl    String?
+  gameId      String
+  game        Game                  @relation(fields: [gameId], references: [id])
+  theories    TheoryWikiReference[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model TheoryWikiReference {
+  theoryId   String
+  theory     Theory   @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+  wikiItemId String
+  wikiItem   WikiItem @relation(fields: [wikiItemId], references: [id], onDelete: Cascade)
+
+  @@id([theoryId, wikiItemId])
+}
+
+enum WikiCategory {
+  CHARACTER
+  ITEM
+  LOCATION
+  EVENT
+  OTHER
 }
 
 enum VoteType {

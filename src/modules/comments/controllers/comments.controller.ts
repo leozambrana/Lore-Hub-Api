@@ -47,4 +47,3 @@ export class CommentsController {
     return this.commentsService.remove(commentId, req.user.id, req.user.role);
   }
 }
-

@@ -14,6 +14,32 @@ export class SupabaseService {
     );
   }
 
+  async uploadFile(bucket: string, file: Express.Multer.File): Promise<string> {
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+
+    const { data, error } = await this.supabase.storage
+      .from(bucket)
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      this.logger.error(
+        `Erro ao subir arquivo para ${bucket}: ${error.message}`,
+      );
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+
+    const { data: publicUrlData } = this.supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return publicUrlData.publicUrl;
+  }
+
   async deleteFile(bucket: string, url: string) {
     if (!url) return;
 
