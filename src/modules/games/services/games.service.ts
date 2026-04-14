@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma';
 import { CreateGameDto, UpdateGameDto } from '../dto';
-import { SupabaseService } from '../../supabase/supabase.service';
+import { StorageProvider } from '../../supabase/storage.provider';
 
 import { GameMapper } from '../mappers/game.mapper';
 
@@ -17,7 +17,7 @@ export class GamesService {
 
   constructor(
     private prisma: PrismaService,
-    private supabaseService: SupabaseService,
+    private storageProvider: StorageProvider,
   ) {}
 
   private validateImageUrl(url?: string) {
@@ -101,12 +101,33 @@ export class GamesService {
     return GameMapper.toHttp(created);
   }
 
+  async uploadCover(id: string, file: Express.Multer.File) {
+    const game = await this.prisma.game.findUnique({ where: { id } });
+    if (!game) throw new NotFoundException('Franquia não encontrada.');
+
+    const imageUrl = await this.storageProvider.uploadGameCover(
+      game.slug,
+      file,
+    );
+
+    const updated = await this.prisma.game.update({
+      where: { id },
+      data: { imageUrl },
+    });
+    return GameMapper.toHttp(updated);
+  }
+
   async update(id: string, data: UpdateGameDto) {
     const game = await this.prisma.game.findUnique({ where: { id } });
     if (!game) throw new NotFoundException('Franquia não encontrada.');
 
     if (data.imageUrl) {
       this.validateImageUrl(data.imageUrl);
+
+      // Se uma nova imagem foi enviada e é diferente da atual, limpamos o storage via StorageProvider
+      if (game.imageUrl && game.imageUrl !== data.imageUrl) {
+        await this.storageProvider.deleteFileByUrl('game', game.imageUrl);
+      }
     }
 
     const updated = await this.prisma.game.update({
@@ -130,18 +151,14 @@ export class GamesService {
       );
     }
 
-    // Armazenamos a URL antes da exclusão do registro
     const imageUrl = game.imageUrl;
 
-    // Primeiro: Excluímos o registro no Banco de Dados
     const deletedGame = await this.prisma.game.delete({
       where: { id },
     });
-    console.log('imageUrl', imageUrl);
-    // Segundo: Após o sucesso no BD, limpamos o Storage (Background)
+
     if (imageUrl) {
-      // Usamos o serviço global do Supabase para limpar o bucket
-      await this.supabaseService.deleteFile('game-images', imageUrl);
+      await this.storageProvider.deleteFileByUrl('game', imageUrl);
     }
 
     return GameMapper.toHttp(deletedGame);

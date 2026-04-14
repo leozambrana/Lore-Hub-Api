@@ -18,6 +18,7 @@ model User {
   theories  Theory[]
   comments  Comment[]
   votes     Vote[]
+  wikiItems WikiItem[]
   role      UserRole  @default(USER)
   createdAt DateTime  @default(now())
 }
@@ -47,6 +48,7 @@ model Theory {
   comments       Comment[]
   votes          Vote[]
   wikiReferences TheoryWikiReference[]
+  canvasData     Json?
   createdAt      DateTime              @default(now())
 }
 
@@ -82,6 +84,8 @@ model WikiItem {
   imageUrl    String?
   gameId      String
   game        Game                  @relation(fields: [gameId], references: [id])
+  userId      String?
+  user        User?                 @relation(fields: [userId], references: [id])
   theories    TheoryWikiReference[]
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt

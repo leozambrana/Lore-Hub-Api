@@ -10,12 +10,15 @@ import {
   ParseIntPipe,
   Patch,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, RolesGuard } from '../../auth/guards';
 
 import { GamesService } from '../services';
 import { CreateGameDto, UpdateGameDto } from '../dto';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('games')
 export class GamesController {
@@ -25,6 +28,17 @@ export class GamesController {
   @UseGuards(SupabaseAuthGuard)
   create(@Body() createGameDto: CreateGameDto) {
     return this.gamesService.create(createGameDto);
+  }
+
+  @Post(':id/cover')
+  @UseGuards(SupabaseAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadCover(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.gamesService.uploadCover(id, file);
   }
 
   @Get()

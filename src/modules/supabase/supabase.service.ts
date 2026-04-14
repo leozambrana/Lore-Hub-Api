@@ -44,25 +44,33 @@ export class SupabaseService {
     if (!url) return;
 
     try {
-      // Extrai o nome do arquivo da URL pública
-      const parts = url.split('/');
-      const fileName = parts.pop();
-      console.log('parts and filename', parts, fileName);
-      if (fileName) {
-        console.log('storage', await this.supabase.storage.getBucket(bucket));
+      // Tenta extrair o caminho completo do arquivo após o nome do bucket
+      // URLs do Supabase seguem o padrão: .../public/bucket-name/folder/file.ext
+      const bucketMarker = `/public/${bucket}/`;
+      const bucketIndex = url.indexOf(bucketMarker);
+
+      let filePath = '';
+
+      if (bucketIndex !== -1) {
+        filePath = url.substring(bucketIndex + bucketMarker.length);
+      } else {
+        // Fallback para o método anterior caso o padrão da URL seja diferente
+        const parts = url.split('/');
+        filePath = parts.pop() || '';
+      }
+
+      if (filePath) {
         const { error } = await this.supabase.storage
           .from(bucket)
-          .remove([fileName]);
-
-        console.log('error', error);
+          .remove([filePath]);
 
         if (error) {
           this.logger.error(
-            `Erro ao deletar arquivo ${fileName} do bucket ${bucket}: ${error.message}`,
+            `Erro ao deletar arquivo ${filePath} do bucket ${bucket}: ${error.message}`,
           );
         } else {
           this.logger.log(
-            `Arquivo ${fileName} excluído com sucesso do bucket ${bucket}.`,
+            `Arquivo ${filePath} excluído com sucesso do bucket ${bucket}.`,
           );
         }
       }

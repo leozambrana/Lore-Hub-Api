@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma';
 import { UpdateUserDto } from '../dto';
-import { SupabaseService } from 'src/modules/supabase/supabase.service';
+import { StorageProvider } from 'src/modules/supabase/storage.provider';
 
 @Injectable()
 export class UsersService {
@@ -11,7 +11,7 @@ export class UsersService {
 
   constructor(
     private prisma: PrismaService,
-    private supabase: SupabaseService,
+    private storageProvider: StorageProvider,
   ) {}
 
   private validateAvatarUrl(url?: string) {
@@ -36,9 +36,17 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, data: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
     if (data.avatarUrl) {
       this.validateAvatarUrl(data.avatarUrl);
+
+      // Se o avatar mudou, limpamos o antigo via StorageProvider
+      if (user?.avatarUrl && user.avatarUrl !== data.avatarUrl) {
+        await this.storageProvider.deleteFileByUrl('avatars', user.avatarUrl);
+      }
     }
+
     return await this.prisma.user.update({
       where: { id: userId },
       data,
@@ -46,18 +54,10 @@ export class UsersService {
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    // 1. Buscar usuário atual para deletar avatar antigo se existir
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    // 1. O StorageProvider já cuida da limpeza e nomenclatura {userId}/profile.{ext}
+    const avatarUrl = await this.storageProvider.uploadAvatar(userId, file);
 
-    // 2. Fazer upload do novo avatar
-    const avatarUrl = await this.supabase.uploadFile('avatars', file);
-
-    // 3. Deletar avatar antigo se for do supabase (evitar lixo)
-    if (user?.avatarUrl) {
-      await this.supabase.deleteFile('avatars', user.avatarUrl);
-    }
-
-    // 4. Atualizar no banco
+    // 2. Atualizar no banco
     return await this.prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },

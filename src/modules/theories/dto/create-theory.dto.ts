@@ -36,4 +36,8 @@ export class CreateTheoryDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   wikiItemIds?: string[];
+
+  @IsOptional()
+  @IsObject()
+  canvasData?: any;
 }

@@ -40,6 +40,7 @@ export class TheoriesService {
         content: createTheoryDto.content,
         wikiUrl: createTheoryDto.wikiUrl,
         wikiMetadata,
+        canvasData: createTheoryDto.canvasData,
         gameId: createTheoryDto.gameId,
         userId,
         wikiReferences: {
@@ -176,6 +177,7 @@ export class TheoriesService {
         content: updateTheoryDto.content,
         wikiUrl: updateTheoryDto.wikiUrl,
         wikiMetadata,
+        canvasData: updateTheoryDto.canvasData,
         gameId: updateTheoryDto.gameId,
         wikiReferences: updateTheoryDto.wikiItemIds
           ? {

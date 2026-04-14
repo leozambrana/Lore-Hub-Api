@@ -1,9 +1,10 @@
-import { Module, Global } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { StorageProvider } from './storage.provider';
 
 @Global()
 @Module({
-  providers: [SupabaseService],
-  exports: [SupabaseService],
+  providers: [SupabaseService, StorageProvider],
+  exports: [SupabaseService, StorageProvider],
 })
 export class SupabaseModule {}
